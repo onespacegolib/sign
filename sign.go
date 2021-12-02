@@ -22,7 +22,9 @@ type (
 		//ModePRD() Context
 		//ModeUAT() Context
 		Activate(BodyRequestSign, *ActivateCaResponse) Context
+		ActivateByHost(string,BodyRequestSign, *ActivateCaResponse) Context
 		JsonSigning(BodyRequestSign, *JsonSigningResponse) Context
+		JsonSigningByHost(string, BodyRequestSign, *JsonSigningResponse) Context
 		EncodeBase64(interface{}, *bytes.Buffer) Context
 		JsonSigningSSL(BodyRequestSignSSL, *JsonSigningResponse) Context
 		JsonSigningPDFSSL(string, BodyRequestPDFSignSSL, *JsonPDFSigningResponse) Context
@@ -41,6 +43,67 @@ type (
 		err  error
 	}
 )
+
+func (c *context) ActivateByHost(host string, request BodyRequestSign, response *ActivateCaResponse) Context {
+	url := host + "/webservice/api/v2/credentials/authorize"
+	body, _ := json.Marshal(ActivateBody{
+		CredentialId: request.CredentialId,
+	})
+
+	headers := map[string]string{
+		echo.HeaderContentType:   "application/json",
+		echo.HeaderAuthorization: "Bearer " + request.Token,
+	}
+	param := requests.Params{
+		URL:     url,
+		BODY:    bytes.NewBuffer(body),
+		HEADERS: headers,
+		TIMEOUT: 5,
+	}
+	var res requests.Response
+	if err := requests.Call().Post(param, &res).Error(); err != nil {
+		c.err = err
+		return c
+	}
+	if res.Code != 200 {
+		c.err = fmt.Errorf(res.Status)
+		return c
+	}
+	if err := json.Unmarshal(res.Result, &response); err != nil {
+		c.err = err
+		return c
+	}
+	c.err = nil
+	return c
+}
+
+func (c *context) JsonSigningByHost(host string, sign BodyRequestSign, res *JsonSigningResponse) Context {
+	body, _ := json.Marshal(sign.SignBody)
+	param := requests.Params{
+		URL:  host + "/webservice/api/v2/signing/jsonSigning",
+		BODY: bytes.NewBuffer(body),
+		HEADERS: map[string]string{
+			echo.HeaderContentType: "application/json",
+			"Authorization":        "Bearer " + sign.Token,
+		},
+		TIMEOUT: 5,
+	}
+	var response requests.Response
+	if err := requests.Call().Post(param, &response).Error(); err != nil {
+		c.err = err
+		return c
+	}
+	if response.Code != 200 {
+		c.err = fmt.Errorf(response.Status)
+		return c
+	}
+	if err := json.Unmarshal(response.Result, &res); err != nil {
+		c.err = err
+		return c
+	}
+	c.err = nil
+	return c
+}
 
 func (c *context) Error() error {
 	if c.err != nil {
