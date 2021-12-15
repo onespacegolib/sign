@@ -29,6 +29,7 @@ type (
 		JsonSigningSSL(BodyRequestSignSSL, *JsonSigningResponse) Context
 		JsonSigningPDFSSL(string, BodyRequestPDFSignSSL, *JsonPDFSigningResponse) Context
 		JsonSigningSSLDhp(BodyRequestSignSSL, *JsonSigningResponse) Context
+		JsonSigningSSLByHost(string, BodyRequestSignSSL, *JsonSigningResponse) Context
 		ListCredentials(BodyRequestSign, *JsoncredentialsListResponse) Context
 	}
 	context struct {
@@ -294,6 +295,60 @@ func (c *context) JsonSigningSSLDhp(bodySSL BodyRequestSignSSL, res *JsonSigning
 	c.err = nil
 	return c
 }
+
+func (c *context) JsonSigningSSLByHost(host string, bodySSL BodyRequestSignSSL, res *JsonSigningResponse) Context {
+	flag.Parse()
+
+	cert, err := tls.LoadX509KeyPair(*c.ssl.CertFile, *c.ssl.KeyFile)
+	if err != nil {
+		c.err = err
+		return c
+	}
+
+	caCert, err := ioutil.ReadFile(*c.ssl.CaFile)
+	if err != nil {
+		c.err = err
+		return c
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+	}
+	tlsConfig.BuildNameToCertificate()
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+	client := &http.Client{Transport: transport}
+
+	jsonData, err := json.Marshal(bodySSL)
+	resp, err := client.Post(host+"/webservice/api/v2/signing/jsonSigning", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		c.err = err
+		return c
+	}
+
+	var response Response
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(resp.Body)
+	response.Code = resp.StatusCode
+	response.Status = resp.Status
+	response.Result = buf.Bytes()
+	response.Header = resp.Header
+	_ = resp.Body.Close()
+	if response.Code != 200 {
+		c.err = fmt.Errorf(response.Status)
+		return c
+	}
+	if err := json.Unmarshal(response.Result, &res); err != nil {
+		c.err = err
+		return c
+	}
+
+	c.err = nil
+	return c
+}
+
 
 func (c *context) JsonSigningPDFSSL(host string, ssl BodyRequestPDFSignSSL, res *JsonPDFSigningResponse) Context {
 	flag.Parse()
