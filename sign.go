@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	requests "git.onespace.co.th/osgolib/http-requests"
@@ -22,7 +21,7 @@ type (
 		//ModePRD() Context
 		//ModeUAT() Context
 		Activate(BodyRequestSign, *ActivateCaResponse) Context
-		ActivateByHost(string,BodyRequestSign, *ActivateCaResponse) Context
+		ActivateByHost(string, BodyRequestSign, *ActivateCaResponse) Context
 		JsonSigning(BodyRequestSign, *JsonSigningResponse) Context
 		JsonSigningByHost(string, BodyRequestSign, *JsonSigningResponse) Context
 		EncodeBase64(interface{}, *bytes.Buffer) Context
@@ -199,17 +198,12 @@ func (c *context) JsonSigningSSL(bodySSL BodyRequestSignSSL, res *JsonSigningRes
 		return c
 	}
 
-	caCert, err := ioutil.ReadFile(*c.ssl.CaFile)
-	if err != nil {
-		c.err = err
-		return c
-	}
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
 
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            caCertPool,
+		InsecureSkipVerify: true,
 	}
 	tlsConfig.BuildNameToCertificate()
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
@@ -252,18 +246,14 @@ func (c *context) JsonSigningSSLDhp(bodySSL BodyRequestSignSSL, res *JsonSigning
 		return c
 	}
 
-	caCert, err := ioutil.ReadFile(*c.ssl.CaFile)
-	if err != nil {
-		c.err = err
-		return c
-	}
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
 
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            caCertPool,
+		InsecureSkipVerify: true,
 	}
+
 	tlsConfig.BuildNameToCertificate()
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
@@ -305,18 +295,14 @@ func (c *context) JsonSigningSSLByHost(host string, bodySSL BodyRequestSignSSL, 
 		return c
 	}
 
-	caCert, err := ioutil.ReadFile(*c.ssl.CaFile)
-	if err != nil {
-		c.err = err
-		return c
-	}
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
 
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            caCertPool,
+		InsecureSkipVerify: true,
 	}
+
 	tlsConfig.BuildNameToCertificate()
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
@@ -349,7 +335,6 @@ func (c *context) JsonSigningSSLByHost(host string, bodySSL BodyRequestSignSSL, 
 	return c
 }
 
-
 func (c *context) JsonSigningPDFSSL(host string, ssl BodyRequestPDFSignSSL, res *JsonPDFSigningResponse) Context {
 	flag.Parse()
 
@@ -359,18 +344,14 @@ func (c *context) JsonSigningPDFSSL(host string, ssl BodyRequestPDFSignSSL, res 
 		return c
 	}
 
-	caCert, err := ioutil.ReadFile(*c.ssl.CaFile)
-	if err != nil {
-		c.err = err
-		return c
-	}
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
 
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            caCertPool,
+		InsecureSkipVerify: true,
 	}
+
 	tlsConfig.BuildNameToCertificate()
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
